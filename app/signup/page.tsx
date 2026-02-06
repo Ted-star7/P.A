@@ -4,18 +4,15 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Eye,
-  EyeOff,
-  AlertCircle,
-  Shield
-} from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Shield, Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signup, isLoading } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [secondName, setSecondName] = useState('');
@@ -23,15 +20,16 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('ADMIN');
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+
 
     if (!firstName || !secondName || !email || !password || !confirmPassword) {
       setError('All fields are required');
@@ -48,64 +46,23 @@ export default function SignupPage() {
       return;
     }
 
-    setIsSubmitting(true);
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
 
     try {
-      const res = await fetch(
-        'https://pergola-monolothic.onrender.com/api/open/auth/register',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            firstName,
-            secondName,
-            email,
-            role
-          })
-        }
+      await signup(
+        { firstName, secondName, email, role },
+        password
       );
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Registration failed');
-      }
-
-      // Auto-login attempt
-      try {
-        const loginRes = await fetch(
-          'https://pergola-monolothic.onrender.com/api/open/auth/login',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-          }
-        );
-
-        if (loginRes.ok) {
-          const loginData = await loginRes.json();
-          if (loginData?.data?.token) {
-            localStorage.setItem('auth_token', loginData.data.token);
-            localStorage.setItem(
-              'user',
-              JSON.stringify({
-                name: `${firstName} ${secondName}`,
-                email,
-                role
-              })
-            );
-            router.push('/');
-            return;
-          }
-        }
-      } catch {
-        // ignore auto-login failure
-      }
-
-      router.push('/login');
+      
+      setSuccess('Account created successfully! Redirecting...');
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -120,29 +77,23 @@ export default function SignupPage() {
           className="object-cover"
           priority
         />
-
         <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/40 to-black/70" />
-
+        
         {/* Top brand bar */}
         <div className="absolute top-0 left-0 right-0 p-8 text-white">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center font-bold">
               PA
             </div>
-            <span className="text-lg font-semibold tracking-wide">
-              Pergola Africa
-            </span>
+            <span className="text-lg font-semibold tracking-wide">Pergola Africa</span>
           </div>
         </div>
 
         {/* Hero copy */}
         <div className="relative z-10 mt-32 px-10 max-w-xl text-white">
-          <h1 className="text-5xl font-bold leading-tight mb-4">
-            Admin Management Portal
-          </h1>
+          <h1 className="text-5xl font-bold leading-tight mb-4">Admin Management Portal</h1>
           <p className="text-lg opacity-90">
-            Securely manage bookings, users, and resort operations from one
-            elegant dashboard.
+            Securely manage bookings, users, and resort operations from one elegant dashboard.
           </p>
         </div>
       </div>
@@ -164,67 +115,81 @@ export default function SignupPage() {
             </div>
           )}
 
+          {success && (
+            <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-700">
+              <div className="h-4 w-4">✓</div>
+              {success}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>First Name</Label>
+                <Label>First Name *</Label>
                 <Input
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   required
+                  disabled={isLoading}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <Label>Second Name</Label>
+                <Label>Second Name *</Label>
                 <Input
                   value={secondName}
                   onChange={e => setSecondName(e.target.value)}
                   required
+                  disabled={isLoading}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             <div>
-              <Label>Email</Label>
+              <Label>Email *</Label>
               <Input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
+                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <Label>Admin Role</Label>
+              <Label>Admin Role *</Label>
               <div className="relative">
                 <select
                   value={role}
                   onChange={e => setRole(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  disabled={isLoading}
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="SUPER_ADMIN">Super Admin</option>
                   <option value="ADMIN">Admin</option>
                 </select>
-                <Shield className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Shield className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Super Admin has full system access
-              </p>
             </div>
 
             <div>
-              <Label>Password</Label>
+              <Label>Password *</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -232,35 +197,46 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <Label>Confirm Password</Label>
+              <Label>Confirm Password *</Label>
               <div className="relative">
                 <Input
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   required
+                  disabled={isLoading}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                 >
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            <Button className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating account…' : 'Create Account'}
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </Button>
           </form>
 
-          <p className="text-sm text-center text-muted-foreground">
+          <p className="text-sm text-center text-gray-600">
             Already have an account?{' '}
-            <Link
-              href="/login"
-              className="text-primary font-semibold hover:underline"
-            >
+            <Link href="/login" className="text-blue-600 font-semibold hover:underline">
               Sign in
             </Link>
           </p>

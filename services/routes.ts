@@ -5,10 +5,11 @@ export const ROUTES = {
   SIGNUP: '/signup',
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',
+  BOOKINGS: '/bookings',
 
   // Protected routes
   DASHBOARD: '/',
-  BOOKINGS: '/bookings',
+  
   ACTIVITIES: '/activities',
   ACCOMMODATIONS: '/accommodations',
   PRICING: '/pricing',

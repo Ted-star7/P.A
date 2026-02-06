@@ -1,6 +1,6 @@
 'use client';
 
-import React from "react"
+import React from "react";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext'; // Now using AuthContext
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,7 +33,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // No need to redirect here, the AuthContext will update and useEffect will handle redirect
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -54,69 +53,79 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left side - Branding (hidden on mobile) */}
-      <div className="hidden md:flex md:w-1/2 items-center justify-center bg-linear-to-br from-sidebar via-sidebar/80 to-sidebar/60 p-8">
-        <div className="text-center max-w-md">
-          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-primary mx-auto">
-            <span className="text-2xl font-bold text-primary-foreground">PA</span>
-          </div>
-          <h1 className="mb-2 text-4xl font-bold text-sidebar-foreground">Pergola Africa</h1>
-          <p className="text-lg text-sidebar-accent mb-8">Admin Management Portal</p>
-          <p className="text-sidebar-foreground/70">
-            Manage bookings, activities, and accommodations for your safari resort all in one place.
+      {/* LEFT: Image + Animated Branding */}
+      <div className="relative hidden md:flex md:w-1/2 items-center justify-center overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e"
+          alt="Pergola Africa Safari Resort"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+
+        <div className="absolute inset-0 bg-black/60" />
+
+        <div className="relative z-10 max-w-lg px-12 text-left">
+          <h1 className="text-5xl font-bold text-white tracking-wide opacity-0 animate-fade-up">
+            Pergola Africa
+          </h1>
+
+          <p className="mt-3 text-xl text-white/80 opacity-0 animate-fade-up animate-delay-200">
+            Pergola Africa Admin Portal
+          </p>
+
+          <p className="mt-6 text-white/70 leading-relaxed opacity-0 animate-fade-up animate-delay-400">
+            Manage bookings, guest experiences, and accommodations from one
+            central system — built for clarity, speed, and control.
           </p>
         </div>
       </div>
 
-      {/* Right side - Login form */}
-      <div className="flex w-full md:w-1/2 items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile header */}
-          <div className="md:hidden mb-8 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary mx-auto">
-              <span className="text-xl font-bold text-primary-foreground">PA</span>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">Pergola Africa</h1>
-            <p className="text-sm text-muted-foreground">Admin Portal</p>
+      {/* RIGHT: Login Form */}
+      <div className="flex w-full md:w-1/2 items-center justify-center px-6">
+        <div className="w-full max-w-lg py-12">
+          {/* Mobile Header */}
+          <div className="md:hidden mb-10 text-center">
+            <h1 className="text-3xl font-bold text-foreground">
+              Pergola Africa
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Admin Portal
+            </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Welcome Back</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Sign in to your admin account
+              <h2 className="text-3xl font-semibold text-foreground">
+                Welcome back
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Sign in to your administrator account
               </p>
             </div>
 
             {error && (
-              <div className="flex gap-3 rounded-lg bg-destructive/10 p-3 text-sm">
+              <div className="flex gap-3 rounded-lg bg-destructive/10 p-4 text-sm">
                 <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
                 <p className="text-destructive">{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">
-                  Email Address
-                </Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@pergola.com"
+                  placeholder="admin@pergolaafrica.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isSubmitting}
-                  className="bg-background border-border"
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-foreground">
-                    Password
-                  </Label>
+                  <Label htmlFor="password">Password</Label>
                   <Link
                     href="/reset-password"
                     className="text-xs text-primary hover:underline"
@@ -124,6 +133,7 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
+
                 <div className="relative">
                   <Input
                     id="password"
@@ -133,7 +143,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isSubmitting}
-                    className="bg-background border-border pr-10"
+                    className="pr-10"
                   />
                   <button
                     type="button"
@@ -152,7 +162,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full py-6 text-base"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Signing in...' : 'Sign In'}
@@ -160,7 +170,7 @@ export default function LoginPage() {
             </form>
 
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-primary font-semibold hover:underline">
                 Sign up
               </Link>
