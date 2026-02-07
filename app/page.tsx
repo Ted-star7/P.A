@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Sidebar } from '@/components/Sidebar';
-import { DashboardContent } from '@/components/DashboardContent';
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Sidebar } from "@/components/Sidebar";
+import { DashboardContent } from "@/components/DashboardContent";
 
 export default function Home() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [isAuthenticated, isLoading, router]);
 

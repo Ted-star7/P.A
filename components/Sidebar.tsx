@@ -25,10 +25,8 @@ const navigation = [
   { name: 'Activities', href: '/activities', icon: Tent },
   { name: 'Accommodations', href: '/accommodations', icon: Home },
   { name: 'Pricing', href: '/pricing', icon: DollarSign },
-  { name: 'Guides', href: '/guides', icon: Users },
   { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Reviews', href: '/reviews', icon: Star },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings },
 ] as const;
@@ -87,7 +85,7 @@ export function Sidebar() {
               )}
               title={!expanded ? item.name : undefined}
             >
-              <Icon size={20} className="flex-shrink-0" />
+              <Icon size={20} className="shrink-0" />
               {expanded && <span>{item.name}</span>}
             </Link>
           );
@@ -98,7 +96,7 @@ export function Sidebar() {
       {expanded && (
         <div className="border-t border-sidebar-border px-4 py-4">
           <p className="text-xs text-sidebar-foreground/60">
-            © 2024 Pergola Africa. All rights reserved.
+            © 2026 Pergola Africa. All rights reserved.
           </p>
         </div>
       )}

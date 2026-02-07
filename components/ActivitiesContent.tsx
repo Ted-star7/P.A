@@ -155,7 +155,7 @@ export function ActivitiesContent() {
                 <h3 className="text-lg font-bold text-foreground">{activity.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{activity.id}</p>
               </div>
-              <button className="p-2 hover:bg-border rounded-lg transition-colors flex-shrink-0">
+              <button className="p-2 hover:bg-border rounded-lg transition-colors shrink-0">
                 <MoreHorizontal size={18} className="text-muted-foreground" />
               </button>
             </div>
