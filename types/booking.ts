@@ -1,45 +1,43 @@
 ﻿// types/booking.ts
 
+// Note: API uses "accomodationType" (double 'm') not "accommodationType"
 export interface Booking {
   id: number;
   guestName: string;
   email: string;
   phoneNumber: string;
-  accommodationType: string;
+  accomodationType: string; // Changed from accommodationType
   numberOfGuests: number;
-  startDate: string;
-  endDate: string;
+  startDate: string; // Format: "2026-02-10"
+  endDate: string; // Format: "2026-02-10"
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'checked_in' | 'checked_out';
-  bookingType: 'online' | 'walkin';
-  specialRequests?: string;
+  status: string; // API returns string, not specific enum
+  bookingType?: 'online' | 'walkin'; // Your custom field
+  specialRequests?: string; // Your custom field
   createdAt?: string;
   updatedAt?: string;
 }
 
+// For creating bookings - matches API exactly
 export interface CreateBookingRequest {
   guestName: string;
   email: string;
   phoneNumber: string;
-  accommodationType: string;
+  accomodationType: string; // Changed from accommodationType
   numberOfGuests: number;
   startDate: string;
   endDate: string;
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'checked_in' | 'checked_out';
-  bookingType?: 'online' | 'walkin';
-  specialRequests?: string;
+  status: string; // Just string, not enum
 }
 
+// API response structure
 export interface BookingResponse {
   message: string;
   data: Booking | Booking[];
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+// Helper type for API compatibility
+export interface ApiCreateBookingRequest {
+  bookingRequest: CreateBookingRequest;
 }
