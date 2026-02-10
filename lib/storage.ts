@@ -1,6 +1,4 @@
 'use client';
-
-// Local Storage Service for Next.js
 export class StorageService {
   // Check if running in browser
   private isBrowser(): boolean {

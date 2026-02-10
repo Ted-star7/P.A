@@ -72,9 +72,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.data?.token && response.data?.firstName) {
         const { token: apiToken, firstName, role } = response.data;
         
-        // Extract user ID from the JWT token (if possible)
+        
         // Or generate a temporary ID from email
-        const userId = email; // Using email as ID since API doesn't provide ID
+        const userId = email; 
         
         // Normalize role (convert SUPERADMIN to SUPER_ADMIN if needed)
         const normalizedRole = role === 'SUPERADMIN' ? 'SUPER_ADMIN' : role;
@@ -125,21 +125,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setToken(null);
       
-      // Re-throw the error for the LoginPage to display
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Helper function to clear ALL auth-related localStorage items
   const clearAllAuthData = () => {
     console.log('Clearing all auth data from localStorage...');
     
     // Clear using storage service
     storage.clearAuth();
     
-    // Clear leftover items from other apps/previous implementations
+    
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_user');
       localStorage.removeItem('session');
@@ -150,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('profile');
       localStorage.removeItem('permissions');
       
-      // You can add more keys if you find other leftover items
+
     }
     
     console.log('All auth data cleared from localStorage');
@@ -166,7 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setToken(null);
     
-    // Force redirect to login page with full reload to clear any cached state
     window.location.href = '/login';
   };
 
