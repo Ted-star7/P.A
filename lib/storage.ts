@@ -40,13 +40,13 @@ export class StorageService {
     }
   }
 
-  // Save username
-  public saveUsername(username: string): void {
+  // Save first name
+  public saveFirstName(firstName: string): void {
     if (this.isBrowser()) {
       try {
-        localStorage.setItem('username', username);
+        localStorage.setItem('first_name', firstName);
       } catch (error) {
-        console.error('Error saving username in local storage:', error);
+        console.error('Error saving first name in local storage:', error);
       }
     }
   }
@@ -67,9 +67,9 @@ export class StorageService {
     return this.isBrowser() ? localStorage.getItem('auth_token') : null;
   }
 
-  // Get username
-  public getUsername(): string | null {
-    return this.isBrowser() ? localStorage.getItem('username') : null;
+  // Get first name
+  public getFirstName(): string | null {
+    return this.isBrowser() ? localStorage.getItem('first_name') : null;
   }
 
   // Get user ID
@@ -99,15 +99,29 @@ export class StorageService {
   }
 
   // Clear all auth data
-  public clearAuth(): void {
-    if (this.isBrowser()) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_id');
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('username');
-      localStorage.removeItem('user');
-    }
+  
+public clearAuth(): void {
+  if (this.isBrowser()) {
+  
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('first_name');
+    localStorage.removeItem('user');
+    
+    // Clear common leftover auth items from other apps
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('session');
+    localStorage.removeItem('user_session');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('profile');
+    localStorage.removeItem('permissions');
+    
+    console.log('All auth data cleared from localStorage');
   }
+}
 
   // Check if user is logged in
   public isLoggedIn(): boolean {
@@ -145,7 +159,6 @@ export class StorageService {
   }
 }
 
-// Create and export a singleton instance
 export const storageService = new StorageService();
 
 // Export individual functions for convenience
@@ -163,8 +176,8 @@ export const storage = {
   getUserId: () => storageService.getUserId(),
   saveRole: (role: string) => storageService.saveRole(role),
   getRole: () => storageService.getRole(),
-  saveUsername: (username: string) => storageService.saveUsername(username),
-  getUsername: () => storageService.getUsername(),
+  saveFirstName: (firstName: string) => storageService.saveFirstName(firstName),
+  getFirstName: () => storageService.getFirstName(),
   
   // Generic functions
   saveItem: (key: string, value: string) => storageService.saveItem(key, value),

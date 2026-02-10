@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,19 +14,23 @@ import {
   AlertCircle,
   Loader2,
   Info,
+  ToggleLeft,
+  ToggleRight,
+  Edit,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { postRequest } from "@/services/api";
+import { postRequest, getRequest } from "@/services/api";
 
-// User type based on your API
+// User type based on your API - UPDATED TO MATCH BACKEND
 interface SystemUser {
-  id: string;
-  firstName: string;
-  secondName: string;
+  id: number;
+  firstname: string;
+  secondname: string;
   email: string;
-  role: "admin" | "superAdmin";
+  role: "ADMIN" | "SUPER_ADMIN";
+  enabled: boolean;
   createdAt?: string;
-  isActive?: boolean;
 }
 
 export function SettingsContent() {
@@ -36,37 +40,52 @@ export function SettingsContent() {
   );
 
   // User management state
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const [newUser, setNewUser] = useState({
     firstName: "",
     secondName: "",
     email: "",
-    role: "admin" as "admin" | "superAdmin",
+    role: "ADMIN" as "ADMIN" | "SUPER_ADMIN",
   });
   const [addingUser, setAddingUser] = useState(false);
+  const [updatingUser, setUpdatingUser] = useState(false);
   const [userError, setUserError] = useState<string | null>(null);
   const [userSuccess, setUserSuccess] = useState<string | null>(null);
 
-  // Mock users data - you'll replace this with your API call
-  const [users, setUsers] = useState<SystemUser[]>([
-    {
-      id: "1",
-      firstName: "Super",
-      secondName: "Admin",
-      email: "superadmin@pergolaafrica.com",
-      role: "superAdmin",
-      isActive: true,
-      createdAt: "2024-01-01",
-    },
-  ]);
+  // Fetch all admins on component mount
+  useEffect(() => {
+    fetchAllAdmins();
+  }, []);
 
-  // Add new user function - ONLY API CALL
+  // Fetch all admins from API
+  const fetchAllAdmins = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await getRequest("/admins/all");
+      
+      if (response.data && Array.isArray(response.data)) {
+        setUsers(response.data);
+      } else {
+        setUserError("Failed to fetch users. Invalid response format.");
+      }
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      setUserError(error.message || "Failed to fetch users. Please try again.");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Add new admin
   const handleAddUser = async () => {
     setUserError(null);
     setUserSuccess(null);
 
     // Basic validation
-    if (!newUser.firstName || !newUser.secondName || !newUser.email) {
+    if (!newUser.firstName.trim() || !newUser.secondName.trim() || !newUser.email.trim()) {
       setUserError("All fields are required");
       return;
     }
@@ -79,44 +98,28 @@ export function SettingsContent() {
     setAddingUser(true);
 
     try {
-      console.log("API Call: Adding new user:", newUser);
+      console.log("Registering new admin:", newUser);
 
-      // IMPORTANT: Use your actual API endpoint here
-      const response = await postRequest("/admin/auth/register", {
-        firstName: newUser.firstName,
-        secondName: newUser.secondName,
-        email: newUser.email,
+      const response = await postRequest("/admins/register", {
+        firstName: newUser.firstName.trim(),
+        secondName: newUser.secondName.trim(),
+        email: newUser.email.trim().toLowerCase(),
         role: newUser.role,
-        // NO PASSWORD - backend should auto-generate
       });
 
       console.log("API Response:", response);
 
-      // Handle different response formats
-      if (
-        response.success ||
-        response.message?.includes("success") ||
-        response.message?.includes("created")
-      ) {
-        // Extract user data from response
-        const addedUser: SystemUser = {
-          id: response.data?.id || Date.now().toString(), // Use ID from response if available
-          firstName: newUser.firstName,
-          secondName: newUser.secondName,
-          email: newUser.email,
-          role: newUser.role,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        };
-
-        // Add to local state
-        setUsers([...users, addedUser]);
-
-        const successMessage =
-          response.message ||
-          `User ${newUser.firstName} ${newUser.secondName} added successfully!`;
+      if (response.message && (response.message.toLowerCase().includes("success") || 
+          response.message.toLowerCase().includes("created"))) {
+        
+        // Refresh the users list
+        await fetchAllAdmins();
+        
+        const successMessage = response.message || 
+          `User ${newUser.firstName} ${newUser.secondName} added successfully! Login credentials have been sent to ${newUser.email}`;
+        
         setUserSuccess(successMessage);
-
+        
         // Clear form and close modal
         setTimeout(() => {
           setShowAddUserModal(false);
@@ -124,43 +127,92 @@ export function SettingsContent() {
             firstName: "",
             secondName: "",
             email: "",
-            role: "admin",
+            role: "ADMIN",
           });
           setUserSuccess(null);
         }, 3000);
+
       } else {
-        // Handle API error messages
-        let errorMsg = "Failed to add user";
-
-        if (response.message) {
-          errorMsg = response.message;
-        } else if (response.error) {
-          errorMsg = response.error;
-        }
-
-        throw new Error(errorMsg);
+        throw new Error(response.message || "Failed to add user");
       }
     } catch (error: any) {
-      console.error("API Error:", error);
-
-      // Show user-friendly error message
-      const errorMessage =
-        error.message ||
-        "Failed to add user. Please check your connection and try again.";
-      setUserError(errorMessage);
+      console.error("Error adding user:", error);
+      
+      if (error.message?.includes("409") || error.message?.includes("exists")) {
+        setUserError("A user with this email already exists.");
+      } else if (error.message?.includes("403")) {
+        setUserError("Access forbidden. Only Super Admins can add users.");
+      } else {
+        setUserError(error.message || "Failed to add user. Please try again.");
+      }
     } finally {
       setAddingUser(false);
     }
   };
 
-  const handleDeleteUser = (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to remove ${userName}?`)) return;
-
-    // For now, just remove from local state
-    setUsers(users.filter((user) => user.id !== userId));
-    setUserSuccess(`User ${userName} removed successfully!`);
-    setTimeout(() => setUserSuccess(null), 3000);
+  // Toggle user status (enabled/disabled)
+  const handleToggleStatus = async (user: SystemUser) => {
+    try {
+      const response = await postRequest(`/admins/update/status/${user.id}`, {});
+      
+      if (response.data) {
+        // Update local state
+        setUsers(users.map(u => 
+          u.id === user.id ? { ...u, enabled: response.data.enabled } : u
+        ));
+        
+        setUserSuccess(`User ${user.firstname} ${user.secondname} is now ${response.data.enabled ? 'active' : 'inactive'}`);
+        setTimeout(() => setUserSuccess(null), 3000);
+      }
+    } catch (error: any) {
+      console.error("Error toggling user status:", error);
+      setUserError(error.message || "Failed to update user status");
+      setTimeout(() => setUserError(null), 3000);
+    }
   };
+
+  // Update user role
+  const handleUpdateRole = async (user: SystemUser, newRole: "ADMIN" | "SUPER_ADMIN") => {
+    try {
+      const response = await postRequest(`/admins/update/role/${user.id}`, {
+        role: newRole,
+      });
+      
+      if (response.data) {
+        // Update local state
+        setUsers(users.map(u => 
+          u.id === user.id ? { ...u, role: response.data.role } : u
+        ));
+        
+        setUserSuccess(`User ${user.firstname} ${user.secondname} role updated to ${newRole === "SUPER_ADMIN" ? "Super Admin" : "Admin"}`);
+        setEditingUser(null);
+        setTimeout(() => setUserSuccess(null), 3000);
+      }
+    } catch (error: any) {
+      console.error("Error updating user role:", error);
+      setUserError(error.message || "Failed to update user role");
+      setTimeout(() => setUserError(null), 3000);
+    }
+  };
+
+  // Start editing user role
+  const handleEditRole = (user: SystemUser) => {
+    setEditingUser(user);
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+  };
+
+  // Helper to compare current user ID - FIXED: convert currentUser.id to number
+  const isCurrentUser = (userId: number) => {
+    const currentUserId = currentUser?.id ? Number(currentUser.id) : null;
+    return currentUserId !== null && userId === currentUserId;
+  };
+
+  // Check if current user is Super Admin
+  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
 
   // About Pergola Africa information
   const aboutPergola = {
@@ -191,6 +243,11 @@ export function SettingsContent() {
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-2">
           Manage system settings and user permissions.
+          {!isSuperAdmin && (
+            <span className="text-amber-600 font-medium ml-2">
+              (You need Super Admin privileges to manage users)
+            </span>
+          )}
         </p>
       </div>
 
@@ -234,7 +291,7 @@ export function SettingsContent() {
         })}
       </div>
 
-      {/* About Pergola Africa - SIMPLE INFO ONLY */}
+      {/* About Pergola Africa */}
       {activeTab === "general" && (
         <div className="space-y-6">
           <Card className="p-6">
@@ -343,7 +400,7 @@ export function SettingsContent() {
         </div>
       )}
 
-      {/* Users & Permissions - SIMPLIFIED */}
+      {/* Users & Permissions */}
       {activeTab === "users" && (
         <div className="space-y-6">
           <Card className="p-6">
@@ -353,116 +410,191 @@ export function SettingsContent() {
                   Admin Users
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                  Add and manage admin users. Passwords are auto-generated and
-                  sent via email.
+                  {isSuperAdmin 
+                    ? "Manage admin users. Passwords are auto-generated and sent via email."
+                    : "View admin users. Only Super Admins can manage users."}
                 </p>
               </div>
-              <Button
-                className="bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                onClick={() => setShowAddUserModal(true)}
-              >
-                <UserPlus size={18} className="mr-2" />
-                Add User
-              </Button>
+              {isSuperAdmin && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => setShowAddUserModal(true)}
+                >
+                  <UserPlus size={18} className="mr-2" />
+                  Add User
+                </Button>
+              )}
             </div>
 
             {/* Users Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted">
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Name
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Email
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Role
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Added
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-foreground">
-                          {user.firstName} {user.secondName}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-foreground">
-                        {user.email}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            user.role === "superAdmin"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
+            {loadingUsers ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Loading users...</span>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-muted">
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                          Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                          Email
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                          Role
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr
+                          key={user.id}
+                          className="border-b border-border hover:bg-muted/50 transition-colors"
                         >
-                          {user.role === "superAdmin"
-                            ? "Super Admin"
-                            : "Admin"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                            user.isActive
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {user.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteUser(
-                              user.id,
-                              `${user.firstName} ${user.secondName}`,
-                            )
-                          }
-                          className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {user.firstname} {user.secondname}
+                              </p>
+                              {isCurrentUser(user.id) && (
+                                <span className="text-xs text-blue-600">(You)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-foreground">
+                            {user.email}
+                          </td>
+                          <td className="px-4 py-3">
+                            {editingUser?.id === user.id ? (
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={user.role}
+                                  onChange={(e) => 
+                                    handleUpdateRole(user, e.target.value as "ADMIN" | "SUPER_ADMIN")
+                                  }
+                                  className="px-2 py-1 border rounded text-sm"
+                                  disabled={updatingUser}
+                                >
+                                  <option value="ADMIN">Admin</option>
+                                  <option value="SUPER_ADMIN">Super Admin</option>
+                                </select>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="p-1 hover:bg-gray-100 rounded"
+                                  disabled={updatingUser}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Shield size={14} className={
+                                  user.role === "SUPER_ADMIN" ? "text-purple-500" : "text-blue-500"
+                                } />
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                    user.role === "SUPER_ADMIN"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-blue-100 text-blue-800"
+                                  }`}
+                                >
+                                  {user.role === "SUPER_ADMIN"
+                                    ? "Super Admin"
+                                    : "Admin"}
+                                </span>
+                                {isSuperAdmin && !isCurrentUser(user.id) && (
+                                  <button
+                                    onClick={() => handleEditRole(user)}
+                                    className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
+                                  >
+                                    <Edit size={12} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {isSuperAdmin && !isCurrentUser(user.id) ? (
+                              <button
+                                onClick={() => handleToggleStatus(user)}
+                                className="flex items-center gap-2"
+                              >
+                                {user.enabled ? (
+                                  <ToggleRight className="text-green-600" size={24} />
+                                ) : (
+                                  <ToggleLeft className="text-gray-400" size={24} />
+                                )}
+                                <span
+                                  className={`text-xs font-medium ${
+                                    user.enabled
+                                      ? "text-green-700"
+                                      : "text-gray-600"
+                                  }`}
+                                >
+                                  {user.enabled ? "Active" : "Inactive"}
+                                </span>
+                              </button>
+                            ) : (
+                              <span
+                                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                                  user.enabled
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {user.enabled ? "Active" : "Inactive"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {isSuperAdmin && !isCurrentUser(user.id) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (confirm(`Remove ${user.firstname} ${user.secondname}?`)) {
+                                    // Note: There's no DELETE API yet, but you can disable the user
+                                    handleToggleStatus(user);
+                                  }
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-              {users.length === 0 && (
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">
-                    No users yet. Add your first admin user!
-                  </p>
+                  {users.length === 0 && (
+                    <div className="text-center py-12">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        No users found. Add your first admin user!
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* User Count */}
+                <div className="mt-4 text-sm text-muted-foreground">
+                  Total users: {users.length} • Active: {users.filter(u => u.enabled).length} • 
+                  Super Admins: {users.filter(u => u.role === "SUPER_ADMIN").length}
+                </div>
+              </>
+            )}
 
             {/* API Information */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -470,21 +602,33 @@ export function SettingsContent() {
                 <div className="h-6 w-6 text-blue-500 mt-0.5">🔧</div>
                 <div>
                   <p className="text-sm font-medium text-blue-800">
-                    API Information
+                    User Management APIs
                   </p>
-                  <div className="space-y-2 mt-2">
+                  <div className="space-y-1 mt-2">
                     <div className="flex items-center gap-2">
                       <code className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        POST /admin/auth/register
+                        GET /admins/all
                       </code>
-                      <span className="text-xs text-blue-700">
-                        - Add new users
-                      </span>
+                      <span className="text-xs text-blue-700">- Fetch all admins</span>
                     </div>
-                    <p className="text-xs text-blue-600">
-                      Passwords are auto-generated by backend and sent to user's
-                      email.
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        POST /admins/register
+                      </code>
+                      <span className="text-xs text-blue-700">- Add new admin</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        POST /admins/update/status/{'{userId}'}
+                      </code>
+                      <span className="text-xs text-blue-700">- Toggle active/inactive</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        POST /admins/update/role/{'{userId}'}
+                      </code>
+                      <span className="text-xs text-blue-700">- Change role</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -493,7 +637,7 @@ export function SettingsContent() {
         </div>
       )}
 
-      {/* Payments Settings - SIMPLIFIED */}
+      {/* Payments Settings */}
       {activeTab === "payments" && (
         <Card className="p-6">
           <h2 className="text-lg font-bold text-foreground mb-6">
@@ -531,7 +675,7 @@ export function SettingsContent() {
         </Card>
       )}
 
-      {/* Add User Modal - MINIMAL VERSION */}
+      {/* Add User Modal */}
       {showAddUserModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <Card className="w-full max-w-md">
@@ -542,7 +686,7 @@ export function SettingsContent() {
                     Add New Admin
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    User will receive login details via email
+                    User will receive auto-generated login details via email
                   </p>
                 </div>
                 <button
@@ -552,7 +696,7 @@ export function SettingsContent() {
                       firstName: "",
                       secondName: "",
                       email: "",
-                      role: "admin",
+                      role: "ADMIN",
                     });
                     setUserError(null);
                     setUserSuccess(null);
@@ -576,7 +720,7 @@ export function SettingsContent() {
                       onChange={(e) =>
                         setNewUser({ ...newUser, firstName: e.target.value })
                       }
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="John"
                       required
                     />
@@ -591,7 +735,7 @@ export function SettingsContent() {
                       onChange={(e) =>
                         setNewUser({ ...newUser, secondName: e.target.value })
                       }
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Doe"
                       required
                     />
@@ -608,7 +752,7 @@ export function SettingsContent() {
                     onChange={(e) =>
                       setNewUser({ ...newUser, email: e.target.value })
                     }
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="john@pergolaafrica.com"
                     required
                   />
@@ -623,10 +767,10 @@ export function SettingsContent() {
                     onChange={(e) =>
                       setNewUser({
                         ...newUser,
-                        role: e.target.value as "admin" | "superAdmin",
+                        role: e.target.value as "ADMIN" | "SUPER_ADMIN",
                       })
                     }
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="ADMIN">Admin</option>
                     <option value="SUPER_ADMIN">Super Admin</option>
@@ -646,11 +790,11 @@ export function SettingsContent() {
                   onClick={handleAddUser}
                   disabled={
                     addingUser ||
-                    !newUser.firstName ||
-                    !newUser.secondName ||
-                    !newUser.email
+                    !newUser.firstName.trim() ||
+                    !newUser.secondName.trim() ||
+                    !newUser.email.trim()
                   }
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {addingUser ? (
                     <>

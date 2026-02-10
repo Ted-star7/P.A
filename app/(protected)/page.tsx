@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { Sidebar } from '@/components/Sidebar';
-import { DashboardContent } from '@/components/DashboardContent';
-import { Button } from '@/components/ui/button';
-import { LogOut, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { Sidebar } from "@/components/Sidebar";
+import { DashboardContent } from "@/components/DashboardContent";
+import { Button } from "@/components/ui/button";
+import { LogOut, Menu } from "lucide-react";
+import { useState } from "react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push("/login");
   };
 
   return (
@@ -38,7 +38,9 @@ export default function DashboardPage() {
         {/* Top bar - visible on desktop */}
         <div className="hidden lg:flex items-center justify-between border-b border-border bg-card p-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Welcome back, {user?.name}</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Welcome back, {user?.firstName}
+            </h2>
             <p className="text-sm text-muted-foreground">{user?.role}</p>
           </div>
           <Button
