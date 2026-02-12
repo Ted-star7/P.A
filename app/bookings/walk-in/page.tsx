@@ -1,12 +1,12 @@
-export default function WalkInBookingsPage() {
+'use client';
+
+import { ProtectedPageWrapper } from '@/components/ProtectedPageWrapper';
+import WalkInBookings from '@/components/WalkInBookings';
+
+export default function WalkInBookingPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">
-        Walk-In Bookings
-      </h1>
-      <p className="text-muted-foreground">
-        Guests who booked physically at the premises.
-      </p>
-    </div>
+    <ProtectedPageWrapper title="Walk-In Booking">
+      <WalkInBookings />
+    </ProtectedPageWrapper>
   );
 }

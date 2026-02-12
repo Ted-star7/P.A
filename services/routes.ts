@@ -3,12 +3,12 @@ export const ROUTES = {
   LOGIN: '/login',
   RESET_PASSWORD: '/reset-password',
   VERIFY_EMAIL: '/verify-email',
-
   
+  // Protected routes
+  DASHBOARD: '/',
   BOOKINGS: '/bookings',
   DIRECT_BOOKINGS: '/bookings/direct',
   WALKIN_BOOKINGS: '/bookings/walk-in',
-  DASHBOARD: '/',
   ACTIVITIES: '/activities',
   ACCOMMODATIONS: '/accommodations',
   GUIDES: '/guides',
@@ -24,7 +24,6 @@ export const PUBLIC_ROUTES = [
   ROUTES.RESET_PASSWORD,
   ROUTES.VERIFY_EMAIL,
 ];
-
 
 export const PROTECTED_ROUTES = [
   ROUTES.DASHBOARD,

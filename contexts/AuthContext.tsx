@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { postRequest } from '@/services/api';
 import { storage } from '@/lib/storage';
+import { ROUTES, PUBLIC_ROUTES } from '@/services/routes'; // Import from services
 
 interface User {
   id: string;
@@ -72,8 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.data?.token && response.data?.firstName) {
         const { token: apiToken, firstName, role } = response.data;
         
+        // Set cookie for middleware
+        if (typeof window !== 'undefined') {
+          document.cookie = `token=${apiToken}; path=/; max-age=604800; SameSite=Lax`;
+        }
         
-        // Or generate a temporary ID from email
         const userId = email; 
         
         // Normalize role (convert SUPERADMIN to SUPER_ADMIN if needed)
@@ -105,13 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         console.log('Login successful. Token saved, user data stored.');
         
-        // Check what's in localStorage
-        console.log('LocalStorage after login:', {
-          token: apiToken.substring(0, 20) + '...',
-          firstName: storage.getFirstName(),
-          role: storage.getRole(),
-          user: storage.getUser()
-        });
+        // Redirect to dashboard
+        window.location.href = ROUTES.DASHBOARD;
         
       } else {
         console.error('Missing token or firstName in response:', response);
@@ -137,7 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Clear using storage service
     storage.clearAuth();
     
-    
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_user');
       localStorage.removeItem('session');
@@ -148,7 +146,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('profile');
       localStorage.removeItem('permissions');
       
-
+      // Clear cookie
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
     }
     
     console.log('All auth data cleared from localStorage');
@@ -164,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setToken(null);
     
-    window.location.href = '/login';
+    window.location.href = PUBLIC_ROUTES[0]; // '/login'
   };
 
   return (
