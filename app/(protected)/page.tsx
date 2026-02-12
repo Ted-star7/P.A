@@ -30,31 +30,35 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed width matches sidebar width */}
       <Sidebar />
 
-      {/* Main content */}
-      <main className="flex-1 lg:ml-64 ml-0">
-        {/* Top bar - visible on desktop */}
-        <div className="hidden lg:flex items-center justify-between border-b border-border bg-card p-4">
+      {/* Main content - Correct margin to avoid overlap */}
+      <main className="flex-1 lg:ml-64 ml-0 min-w-0">
+        {/* Top bar - Clean white design that matches your components */}
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Welcome back, {user?.firstName}
+              Welcome back, {user?.firstName || 'Admin'}
             </h2>
-            <p className="text-sm text-muted-foreground">{user?.role}</p>
+            <p className="text-sm text-muted-foreground capitalize">
+              {user?.role?.replace('_', ' ') || 'Administrator'}
+            </p>
           </div>
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="flex items-center gap-2 bg-transparent"
+            className="flex items-center gap-2 border-border hover:bg-secondary/20"
           >
             <LogOut size={18} />
             <span className="hidden sm:inline">Sign Out</span>
           </Button>
         </div>
 
-        {/* Dashboard content */}
-        <DashboardContent />
+        {/* Dashboard content with proper padding */}
+        <div className="p-6">
+          <DashboardContent />
+        </div>
       </main>
     </div>
   );
